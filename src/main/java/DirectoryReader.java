@@ -8,17 +8,25 @@ import java.util.Map;
  */
 public class  DirectoryReader implements Iterable<DirectoryReader.GeneFileEntry> {
 
+    private boolean isReady = false;
     public Iterator<GeneFileEntry> iterator() {
-        final Iterator<Map.Entry<String, GeneFileEntry>> internalIterator = mGeneFileList.entrySet().iterator();
-
         return new Iterator<GeneFileEntry>() {
+            private Iterator<Map.Entry<String, GeneFileEntry>> mInternalIt = null;
 
             public boolean hasNext() {
-                return internalIterator.hasNext();
+                if(!isReady){
+                    readFiles();
+                    mInternalIt = mGeneFileList.entrySet().iterator();
+                }
+                return mInternalIt.hasNext();
             }
 
             public GeneFileEntry next() {
-                Map.Entry<String, GeneFileEntry> e = internalIterator.next();
+                if(!isReady){
+                    readFiles();
+                    mInternalIt = mGeneFileList.entrySet().iterator();
+                }
+                Map.Entry<String, GeneFileEntry> e =  mInternalIt.next();
                 return e.getValue();
             }
 
@@ -29,6 +37,7 @@ public class  DirectoryReader implements Iterable<DirectoryReader.GeneFileEntry>
     }
 
     public static class GeneFileEntry {
+        String classId;
         String geneId;
         String seqFilename;
         String goFilename;
@@ -40,10 +49,8 @@ public class  DirectoryReader implements Iterable<DirectoryReader.GeneFileEntry>
     }
 
     private HashMap<String, GeneFileEntry> mGeneFileList;
+    private HashMap<String, String> mDirectoryList;
 
-    private String mDirectoryPath = "";
-
-    private DirectoryReader(){}
 
     private FilenameParts getNameParts(String filename){
         FilenameParts p = new FilenameParts();
@@ -53,38 +60,50 @@ public class  DirectoryReader implements Iterable<DirectoryReader.GeneFileEntry>
         return p;
     }
 
-    public void open(){
-        File dir = new File(mDirectoryPath);
-        File[] directoryListing = dir.listFiles();
-        if (directoryListing != null) {
-            for (File child : directoryListing) {
+    private void readFiles() {
 
-                FilenameParts parts =  getNameParts(child.getName());
-                GeneFileEntry current;
+        Iterator<Map.Entry<String, String>> it = mDirectoryList.entrySet().iterator();
+        while(it.hasNext()) {
+            Map.Entry<String, String> e = it.next();
+            String directory = e.getValue();
+            String classId = e.getKey();
+            File dir = new File(directory);
+            File[] directoryListing = dir.listFiles();
+            if (directoryListing != null) {
+                for (File child : directoryListing) {
 
-                if(!mGeneFileList.containsKey(parts.geneId)){
-                    current = new GeneFileEntry();
-                    current.geneId = parts.geneId;
-                    mGeneFileList.put(parts.geneId, current);
-                } else {
-                    current = mGeneFileList.get(parts.geneId);
+                    FilenameParts parts = getNameParts(child.getName());
+                    GeneFileEntry current;
+                    if (!mGeneFileList.containsKey(parts.geneId)) {
+                        current = new GeneFileEntry();
+                        current.geneId = parts.geneId;
+                        mGeneFileList.put(parts.geneId, current);
+                    } else {
+                        current = mGeneFileList.get(parts.geneId);
+                    }
+                    current.classId = classId;
+
+                    if (parts.dataType.equals("seq")) {
+                        current.seqFilename = child.getAbsolutePath();
+                    }
+
+                    if (parts.dataType.equals("go")) {
+                        current.goFilename = child.getAbsolutePath();
+                    }
+
                 }
-
-                if(parts.dataType.equals("seq")){
-                    current.seqFilename = child.getAbsolutePath();
-                }
-
-                if(parts.dataType.equals("go")){
-                    current.goFilename = child.getAbsolutePath();
-                }
-
             }
         }
+        isReady = true;
     }
 
-    public DirectoryReader(String directory) {
-        mDirectoryPath = directory;
+    public DirectoryReader() {
         mGeneFileList = new HashMap<String, GeneFileEntry>();
+        mDirectoryList = new HashMap<String, String>();
+    }
+
+    public void addDirectory(String key, String path){
+        mDirectoryList.put(key, path);
     }
 
 }
