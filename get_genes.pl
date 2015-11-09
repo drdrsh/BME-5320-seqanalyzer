@@ -13,15 +13,17 @@ $registry->load_registry_from_db(
 
 my $gene_adaptor = $registry->get_adaptor( 'Human', 'Core', 'Gene' );
 
-my @gene_list = ('ENSG00000149294', 'ENSG00000177082');
+my @gene_list = @ARGV;
 
 foreach (@gene_list) {
     my $gene;
     my %gene_obj;
     my $nearest_gene;
-
+    
     $gene = $gene_adaptor->fetch_by_stable_id($_);
     $nearest_gene = $gene->get_nearest_Gene();
+
+    my $file = $gene->stable_id() . ".seq.json";
     
     $gene_obj{'id'} = $gene->stable_id();
     $gene_obj{'nearest_gene'} = $nearest_gene->stable_id();
@@ -75,9 +77,12 @@ foreach (@gene_list) {
     $gene_obj{'transcripts'} = \%transcript_map;
 
 
-    push @gene_list, \%gene_obj
+    my $json = encode_json \%gene_obj;
+    
+    unless(open FILE, '>'.$file) {
+        die "\nUnable to create $file\n";
+    }
+    print FILE $json;
+    close FILE;
 
 }
-
-my $json = encode_json \@gene_list;
-print $json;
