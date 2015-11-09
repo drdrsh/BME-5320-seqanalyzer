@@ -15,7 +15,7 @@ import java.util.*;
 /**
  * Created by Mostafa on 11/5/2015.
  */
-public class FASTASequenceWalker implements Iterable<FASTASequenceWalker.SequenceEntry> {
+public class FASTAGeneWalker implements Iterable<FASTAGeneWalker.SequenceEntry> {
 
     public static class SequenceEntry {
         enum SeqType {TYPE_FULL, TYPE_5UTR, TYPE_3UTR, TYPE_EXON, TYPE_CDS, TYPE_INTRON, TYPE_UNKNOWN};
@@ -33,8 +33,8 @@ public class FASTASequenceWalker implements Iterable<FASTASequenceWalker.Sequenc
     private String mFilePath = null;
 
 
-    private FASTASequenceWalker(){}
-    public FASTASequenceWalker(String filepath) {
+    private FASTAGeneWalker(){}
+    public FASTAGeneWalker(String filepath) {
         mFilePath = filepath;
 
         mSequenceList = new ArrayList<SequenceEntry>();

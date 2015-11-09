@@ -15,6 +15,7 @@ import org.biojava.nbio.core.sequence.template.Sequence;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
 import java.util.zip.GZIPOutputStream;
 
@@ -116,6 +117,7 @@ public class EntryPoint {
                     "mean_exon_length", "median_exon_length", "sd_exon_length",
                     "mean_exon_complexity", "median_exon_complexity", "sd_exon_complexity",
                     "mean_exon_score", "median_exon_score", "sd_exon_score",
+                    "number_of_transcripts",
                     "error_level"
                 }
         );
@@ -124,9 +126,14 @@ public class EntryPoint {
         directoryReader.addDirectory("high", "./data/high_error/");
         directoryReader.addDirectory("low",  "./data/low_error/");
 
+        long processStartTime = System.currentTimeMillis();
+        JSONGeneReader geneReader = new JSONGeneReader();
         for (DirectoryReader.GeneFileEntry g : directoryReader) {
-            processGene(g);
+            long geneStartTime = System.currentTimeMillis();
+            processGene(geneReader.readGene(g.seqFilename), g.classId);
+            System.out.println("Done gene in " + ((System.currentTimeMillis() - geneStartTime) / 1000) + " seconds");
         }
+        System.out.println("Done process in " + ((System.currentTimeMillis() - processStartTime) / 1000) + " seconds");
 
         try {
             data.exportToCSV("test.csv");
@@ -137,12 +144,11 @@ public class EntryPoint {
 
     }
 
-    private static void processGene(DirectoryReader.GeneFileEntry g) {
-        data.newRow();
-        data.setValue("gene_id", g.geneId);
-        data.setValue("error_level", g.classId);
+    private static void processGene(Gene g, String classId) {
 
-        FASTASequenceWalker fastaReader = new FASTASequenceWalker(g.seqFilename);
+        data.newRow();
+        data.setValue("gene_id", g.id);
+        data.setValue("error_level", classId);
 
         int exon_count = 0;
         DescriptiveStatistics exonLength = new DescriptiveStatistics();
@@ -150,28 +156,29 @@ public class EntryPoint {
         DescriptiveStatistics exonComplexity = new DescriptiveStatistics();
         DescriptiveStatistics exonGCCount = new DescriptiveStatistics();
 
+
+        System.out.println("\r Processing gene " + g.id);
+        data.setValue("gene_length", g.sequence.getLength());
+        data.setValue("gc_count", g.sequence.getGCCount());
+        data.setValue("gene_complexity", getComplexity(g.sequence));
+        data.setValue("gene_score", new SequenceComparator(g.sequence, ALIGNMENT_REF, 7).getSimilarity());
+
         int counter = 0;
 
-        Iterator<FASTASequenceWalker.SequenceEntry> it = fastaReader.iterator();
-        while (it.hasNext()) {
+        Iterator<Map.Entry<String, Exon>> it = g.exons.entrySet().iterator();
+        while(it.hasNext()){
+            Map.Entry<String, Exon> e = it.next();
+            Exon ex =  e.getValue();
+            System.out.println("\r Processing exon " + counter + " (" + ex.id + ")");
+
+            exon_count++;
+            exonScore.addValue(new SequenceComparator(ex.sequence, ALIGNMENT_REF, 7).getSimilarity());
+            exonComplexity.addValue(getComplexity(ex.sequence));
+            exonLength.addValue(ex.sequence.getLength());
+            exonGCCount.addValue(ex.sequence.getGCCount());
+
             counter++;
-            System.out.println("\r Processing sequence " + counter + " in  " + g.geneId);
-            FASTASequenceWalker.SequenceEntry seq = it.next();
 
-            if (seq.seqType == FASTASequenceWalker.SequenceEntry.SeqType.TYPE_FULL) {
-                data.setValue("gene_length", seq.sequence.getLength());
-                data.setValue("gc_count", seq.sequence.getGCCount());
-                data.setValue("gene_complexity", getComplexity(seq.sequence));
-                data.setValue("gene_score", new SequenceComparator(seq.sequence, ALIGNMENT_REF, 7).getSimilarity());
-            }
-
-            if (seq.seqType == FASTASequenceWalker.SequenceEntry.SeqType.TYPE_EXON) {
-                exon_count++;
-                exonScore.addValue(new SequenceComparator(seq.sequence, ALIGNMENT_REF, 7).getSimilarity());
-                exonComplexity.addValue(getComplexity(seq.sequence));
-                exonLength.addValue(seq.sequence.getLength());
-                exonGCCount.addValue(seq.sequence.getGCCount());
-            }
         }
 
         data.setValue("exon_count", exon_count);
@@ -187,7 +194,7 @@ public class EntryPoint {
         data.setValue("mean_exon_score", exonScore.getMean());
         data.setValue("median_exon_score", exonScore.getPercentile(50));
         data.setValue("sd_exon_score", exonScore.getStandardDeviation());
-
+        data.setValue("number_of_transcripts", g.transcripts.size());
     }
 
 }
