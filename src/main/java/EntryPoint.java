@@ -28,6 +28,7 @@ public class EntryPoint {
     public static final long RANDOM_SEED = 500;
 
     public static DNASequence ALIGNMENT_REF;
+
     public static double getCompressionRatio(String str) {
         if (str == null || str.length() == 0) {
             return 0;
@@ -35,7 +36,7 @@ public class EntryPoint {
 
         BufferedWriter writer = null;
         ByteArrayOutputStream bos = null;
-        try{
+        try {
             bos = new ByteArrayOutputStream();
             GZIPOutputStream zip = new GZIPOutputStream(bos);
             writer = new BufferedWriter(new OutputStreamWriter(zip, "UTF-8"));
@@ -43,14 +44,14 @@ public class EntryPoint {
         } catch (Exception e) {
             return -1;
         } finally {
-            if(writer != null){
+            if (writer != null) {
                 try {
                     writer.close();
-                } catch(Exception e) {
+                } catch (Exception e) {
                 }
             }
         }
-        return ( ((double)str.length() / (double)bos.size()));
+        return (((double) str.length() / (double) bos.size()));
     }
 
     private static double getComplexity(DNASequence d) {
@@ -59,7 +60,7 @@ public class EntryPoint {
         double res = getCompressionRatio(d.getSequenceAsString());
         //System.out.println("1.0 - " + res + " - " + max);
         double result = 1 - (res / max);
-        if(Double.isInfinite(result)) {
+        if (Double.isInfinite(result)) {
             result = 0;
             System.out.println(d.getSequenceAsString());
 
@@ -110,21 +111,42 @@ public class EntryPoint {
         ALIGNMENT_REF = generateRandomSequence(2500);
 
         data = new Dataset(
-                new String[] {
-                    "gene_id",
-                    "gene_length", "gene_complexity", "gc_count", "gene_score",
-                    "exon_count",
-                    "mean_exon_length", "median_exon_length", "sd_exon_length",
-                    "mean_exon_complexity", "median_exon_complexity", "sd_exon_complexity",
-                    "mean_exon_score", "median_exon_score", "sd_exon_score",
-                    "number_of_transcripts",
-                    "error_level"
+                new String[]{
+                        "gene_id",
+                        "gene_length", "gene_complexity", "gene_gccount", "gene_score",
+
+                        "exon_count",
+                        "mean_exon_length", "median_exon_length", "sd_exon_length",
+                        "mean_exon_complexity", "median_exon_complexity", "sd_exon_complexity",
+                        "mean_exon_score", "median_exon_score", "sd_exon_score",
+                        "mean_exon_gccount", "median_exon_gccount", "sd_exon_gccount",
+
+                        "number_of_transcripts",
+                        "mean_distance_between_exons", "median_distance_between_exons", "sd_distance_between_exons",
+                        "mean_exons_per_trans", "median_exons_per_trans", "sd_exons_per_trans",
+
+                        "mean_trans_length", "median_trans_length", "sd_trans_length",
+                        "mean_trans_complexity", "median_trans_complexity", "sd_trans_complexity",
+                        "mean_trans_score", "median_trans_score", "sd_trans_score",
+                        "mean_trans_gccount", "median_trans_gccount", "sd_trans_gccount",
+
+                        "mean_5utr_length", "median_5utr_length", "sd_5utr_length",
+                        "mean_5utr_complexity", "median_5utr_complexity", "sd_5utr_complexity",
+                        "mean_5utr_score", "median_5utr_score", "sd_5utr_score",
+                        "mean_5utr_gccount", "median_5utr_gccount", "sd_5utr_gccount",
+
+                        "mean_3utr_length", "median_3utr_length", "sd_3utr_length",
+                        "mean_3utr_complexity", "median_3utr_complexity", "sd_3utr_complexity",
+                        "mean_3utr_score", "median_3utr_score", "sd_3utr_score",
+                        "mean_3utr_gccount", "median_3utr_gccount", "sd_3utr_gccount",
+
+                        "error_level"
                 }
         );
 
         DirectoryReader directoryReader = new DirectoryReader();
         directoryReader.addDirectory("high", "./data/high_error/");
-        directoryReader.addDirectory("low",  "./data/low_error/");
+        directoryReader.addDirectory("low", "./data/low_error/");
 
         long processStartTime = System.currentTimeMillis();
         JSONGeneReader geneReader = new JSONGeneReader();
@@ -137,11 +159,15 @@ public class EntryPoint {
 
         try {
             data.exportToCSV("test.csv");
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
+    }
 
-
+    private static void addCommonStat(String paramName, DescriptiveStatistics obj)  {
+        data.setValue("mean_" + paramName, obj.getMean());
+        data.setValue("median_" + paramName, obj.getPercentile(50));
+        data.setValue("sd_" + paramName, obj.getStandardDeviation());
     }
 
     private static void processGene(Gene g, String classId) {
@@ -156,19 +182,38 @@ public class EntryPoint {
         DescriptiveStatistics exonComplexity = new DescriptiveStatistics();
         DescriptiveStatistics exonGCCount = new DescriptiveStatistics();
 
+        DescriptiveStatistics transLength = new DescriptiveStatistics();
+        DescriptiveStatistics transExonSpacing = new DescriptiveStatistics();
+        DescriptiveStatistics transScore = new DescriptiveStatistics();
+        DescriptiveStatistics transComplexity = new DescriptiveStatistics();
+        DescriptiveStatistics transGCCount = new DescriptiveStatistics();
+        DescriptiveStatistics transExonLength = new DescriptiveStatistics();
+        DescriptiveStatistics transExonPerTrans = new DescriptiveStatistics();
+
+        DescriptiveStatistics trans5UTRComplexity = new DescriptiveStatistics();
+        DescriptiveStatistics trans5UTRScore = new DescriptiveStatistics();
+        DescriptiveStatistics trans5UTRLength = new DescriptiveStatistics();
+        DescriptiveStatistics trans5UTRGCCount = new DescriptiveStatistics();
+
+        DescriptiveStatistics trans3UTRComplexity = new DescriptiveStatistics();
+        DescriptiveStatistics trans3UTRScore = new DescriptiveStatistics();
+        DescriptiveStatistics trans3UTRLength = new DescriptiveStatistics();
+        DescriptiveStatistics trans3UTRGCCount = new DescriptiveStatistics();
+
 
         System.out.println("\r Processing gene " + g.id);
+
         data.setValue("gene_length", g.sequence.getLength());
-        data.setValue("gc_count", g.sequence.getGCCount());
+        data.setValue("gene_gccount", g.sequence.getGCCount());
         data.setValue("gene_complexity", getComplexity(g.sequence));
         data.setValue("gene_score", new SequenceComparator(g.sequence, ALIGNMENT_REF, 7).getSimilarity());
 
         int counter = 0;
 
         Iterator<Map.Entry<String, Exon>> it = g.exons.entrySet().iterator();
-        while(it.hasNext()){
+        while (it.hasNext()) {
             Map.Entry<String, Exon> e = it.next();
-            Exon ex =  e.getValue();
+            Exon ex = e.getValue();
             System.out.println("\r Processing exon " + counter + " (" + ex.id + ")");
 
             exon_count++;
@@ -183,18 +228,78 @@ public class EntryPoint {
 
         data.setValue("exon_count", exon_count);
 
-        data.setValue("mean_exon_length", exonLength.getMean());
-        data.setValue("median_exon_length", exonLength.getPercentile(50));
-        data.setValue("sd_exon_length", exonLength.getStandardDeviation());
+        addCommonStat("exon_length", exonLength);
+        addCommonStat("exon_complexity", exonComplexity);
+        addCommonStat("exon_gccount", exonGCCount);
+        addCommonStat("exon_score", exonScore);
 
-        data.setValue("mean_exon_complexity", exonComplexity.getMean());
-        data.setValue("median_exon_complexity", exonComplexity.getPercentile(50));
-        data.setValue("sd_exon_complexity", exonComplexity.getStandardDeviation());
 
-        data.setValue("mean_exon_score", exonScore.getMean());
-        data.setValue("median_exon_score", exonScore.getPercentile(50));
-        data.setValue("sd_exon_score", exonScore.getStandardDeviation());
+        counter = 0;
+        StringBuilder transSeq;
+        Iterator<Transcript> tit = g.transcripts.iterator();
+        while (tit.hasNext()) {
+
+            Transcript tr = tit.next();
+            transSeq = new StringBuilder();
+            System.out.println("\r Processing transcript " + counter + " (" + tr.id + ")");
+
+            for (int i = 0; i < tr.exons.size(); i++) {
+                Exon currentExon = tr.exons.get(i);
+                Exon previousExon = i == 0 ? null : tr.exons.get(i - 1);
+
+                transExonLength.addValue(currentExon.sequence.getLength());
+                if (previousExon != null) {
+                    transExonSpacing.addValue(currentExon.start - previousExon.end);
+                }
+                transSeq.append(currentExon.sequence.getSequenceAsString());
+            }
+            transExonPerTrans.addValue(tr.exons.size());
+
+            try {
+                tr.sequence = new DNASequence(transSeq.toString());
+                transGCCount.addValue(tr.sequence.getGCCount());
+                transComplexity.addValue(getComplexity(tr.sequence));
+                transScore.addValue(new SequenceComparator(tr.sequence, ALIGNMENT_REF, 7).getSimilarity());
+                transLength.addValue(tr.sequence.getLength());
+
+                trans5UTRGCCount.addValue(tr.fiveUTR.getGCCount());
+                trans5UTRComplexity.addValue(getComplexity(tr.fiveUTR));
+                trans5UTRScore.addValue(new SequenceComparator(tr.fiveUTR, ALIGNMENT_REF, 7).getSimilarity());
+                trans5UTRLength.addValue(tr.fiveUTR.getLength());
+
+                trans3UTRGCCount.addValue(tr.threeUTR.getGCCount());
+                trans3UTRComplexity.addValue(getComplexity(tr.threeUTR));
+                trans3UTRScore.addValue(new SequenceComparator(tr.threeUTR, ALIGNMENT_REF, 7).getSimilarity());
+                trans3UTRLength.addValue(tr.threeUTR.getLength());
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            counter++;
+        }
+
         data.setValue("number_of_transcripts", g.transcripts.size());
+
+        addCommonStat("distance_between_exons", transExonSpacing);
+
+        addCommonStat("exon_per_trans", transExonPerTrans);
+
+        addCommonStat("trans_length", transLength);
+        addCommonStat("trans_complexity", transComplexity);
+        addCommonStat("trans_gccount", transGCCount);
+        addCommonStat("trans_score", transScore);
+
+        addCommonStat("5utr_length", trans5UTRLength);
+        addCommonStat("5utr_complexity", trans5UTRComplexity);
+        addCommonStat("5utr_gccount", trans5UTRGCCount);
+        addCommonStat("5utr_score", trans5UTRScore);
+
+        addCommonStat("3utr_length", trans3UTRLength);
+        addCommonStat("3utr_complexity", trans3UTRComplexity);
+        addCommonStat("3utr_gccount", trans3UTRGCCount);
+        addCommonStat("3utr_score", trans3UTRScore);
+
+
     }
 
 }

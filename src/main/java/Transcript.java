@@ -8,6 +8,7 @@ import java.util.HashMap;
 public class Transcript {
     String id;
     ArrayList<Exon> exons;
+    DNASequence sequence;
     DNASequence fiveUTR;
     DNASequence threeUTR;
 
