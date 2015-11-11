@@ -4,7 +4,10 @@ use warnings;
 use Bio::EnsEMBL::Registry;
 use JSON;
 
+my $start_time = time();
+
 my $registry = 'Bio::EnsEMBL::Registry';
+print "Connecting to ensembl.org...\n";
 
 $registry->load_registry_from_db(
     -host => 'ensembldb.ensembl.org', # alternatively 'useastdb.ensembl.org'
@@ -14,13 +17,15 @@ $registry->load_registry_from_db(
 my $gene_adaptor = $registry->get_adaptor( 'Human', 'Core', 'Gene' );
 
 my @gene_list = @ARGV;
-
+my $counter = 1;
+my $total_size = @ARGV;
 foreach (@gene_list) {
     my $gene;
     my %gene_obj;
     my $nearest_gene;
     
     $gene = $gene_adaptor->fetch_by_stable_id($_);
+    print "Processing gene number $counter out of $total_size ($_) ... ";
     $nearest_gene = $gene->get_nearest_Gene();
 
     my $file = $gene->stable_id() . ".seq.json";
@@ -30,7 +35,7 @@ foreach (@gene_list) {
     $gene_obj{'start'} = $gene->start();
     $gene_obj{'end'} = $gene->end();
     $gene_obj{'sequence'} = $gene->seq();
-    
+
     my $exons = $gene->get_all_Exons();
     my %exon_map;
     while( my $exon = shift @{$exons} ) {
@@ -84,5 +89,10 @@ foreach (@gene_list) {
     }
     print FILE $json;
     close FILE;
+    $counter = $counter + 1;
+    print "Done \n";
+
 
 }
+
+print "Operation completed in " . (time() - $start_time) . " seconds.\n";
