@@ -12,11 +12,11 @@ import org.biojava.nbio.core.sequence.compound.AminoAcidCompound;
 import org.biojava.nbio.core.sequence.compound.NucleotideCompound;
 import org.biojava.nbio.core.sequence.template.Sequence;
 
+import javax.smartcardio.TerminalFactory;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Random;
+import java.nio.charset.Charset;
+import java.text.Format;
+import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -25,7 +25,7 @@ import java.util.zip.GZIPOutputStream;
 public class EntryPoint {
 
     public static Dataset data;
-    public static final long RANDOM_SEED = 500;
+    public static final int RANDOM_SEED = 500;
 
     public static DNASequence ALIGNMENT_REF;
 
@@ -55,6 +55,9 @@ public class EntryPoint {
     }
 
     private static double getComplexity(DNASequence d) {
+        if(d.getLength() == 0){
+            return 0;
+        }
         String maxString = StringUtils.repeat('a', d.getLength());
         double max = getCompressionRatio(maxString);
         double res = getCompressionRatio(d.getSequenceAsString());
@@ -62,9 +65,8 @@ public class EntryPoint {
         double result = 1 - (res / max);
         if (Double.isInfinite(result)) {
             result = 0;
-            System.out.println(d.getSequenceAsString());
-
-        }
+            //System.out.println(d.getSequenceAsString());
+       }
 
         return result;
 
@@ -106,7 +108,9 @@ public class EntryPoint {
         return (int) Math.round(pair.getScore());
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
+
+        System.out.println("Gene Analyzer 0.0.1 by Mostafa Abdelraouf");
 
         ALIGNMENT_REF = generateRandomSequence(2500);
 
@@ -115,13 +119,14 @@ public class EntryPoint {
                         "gene_id",
                         "gene_length", "gene_complexity", "gene_gccount", "gene_score",
 
+                        "transcript_count",
                         "exon_count",
+
                         "mean_exon_length", "median_exon_length", "sd_exon_length",
                         "mean_exon_complexity", "median_exon_complexity", "sd_exon_complexity",
                         "mean_exon_score", "median_exon_score", "sd_exon_score",
                         "mean_exon_gccount", "median_exon_gccount", "sd_exon_gccount",
 
-                        "number_of_transcripts",
                         "mean_distance_between_exons", "median_distance_between_exons", "sd_distance_between_exons",
                         "mean_exons_per_trans", "median_exons_per_trans", "sd_exons_per_trans",
 
@@ -145,17 +150,22 @@ public class EntryPoint {
         );
 
         DirectoryReader directoryReader = new DirectoryReader();
+
         directoryReader.addDirectory("high", "./data/high_error/");
         directoryReader.addDirectory("low", "./data/low_error/");
 
         long processStartTime = System.currentTimeMillis();
         JSONGeneReader geneReader = new JSONGeneReader();
+        int counter = 1;
+        TerminalHelper.TerminalSegment geneConsoleSegment = TerminalHelper.addProgressSegment() ;
         for (DirectoryReader.GeneFileEntry g : directoryReader) {
             long geneStartTime = System.currentTimeMillis();
+            geneConsoleSegment.update("Processing gene " + g.geneId + "(" + counter  + "/" + directoryReader.getCount() + ")");
             processGene(geneReader.readGene(g.seqFilename), g.classId);
-            System.out.println("Done gene in " + ((System.currentTimeMillis() - geneStartTime) / 1000) + " seconds");
+            //System.out.println("Done gene in " + ((System.currentTimeMillis() - geneStartTime) / 1000) + " seconds");
+            counter++;
         }
-        System.out.println("Done process in " + ((System.currentTimeMillis() - processStartTime) / 1000) + " seconds");
+        System.out.println("\nDone process in " + ((System.currentTimeMillis() - processStartTime) / 1000) + " seconds");
 
         try {
             data.exportToCSV("test.csv");
@@ -175,6 +185,8 @@ public class EntryPoint {
         data.newRow();
         data.setValue("gene_id", g.id);
         data.setValue("error_level", classId);
+
+        TerminalHelper.TerminalSegment featureConsoleSeg = TerminalHelper.addProgressSegment() ;
 
         int exon_count = 0;
         DescriptiveStatistics exonLength = new DescriptiveStatistics();
@@ -201,21 +213,21 @@ public class EntryPoint {
         DescriptiveStatistics trans3UTRGCCount = new DescriptiveStatistics();
 
 
-        System.out.println("\r Processing gene " + g.id);
 
         data.setValue("gene_length", g.sequence.getLength());
         data.setValue("gene_gccount", g.sequence.getGCCount());
+        featureConsoleSeg.update(" - analyzing complexity");
         data.setValue("gene_complexity", getComplexity(g.sequence));
+        featureConsoleSeg.update(" - analyzing gene sequence");
         data.setValue("gene_score", new SequenceComparator(g.sequence, ALIGNMENT_REF, 7).getSimilarity());
 
-        int counter = 0;
+        int counter = 1;
 
         Iterator<Map.Entry<String, Exon>> it = g.exons.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Exon> e = it.next();
             Exon ex = e.getValue();
-            System.out.println("\r Processing exon " + counter + " (" + ex.id + ")");
-
+            featureConsoleSeg.update(String.format(" - exon %s (%d/%d)", ex.id, counter, g.exons.entrySet().size()));
             exon_count++;
             exonScore.addValue(new SequenceComparator(ex.sequence, ALIGNMENT_REF, 7).getSimilarity());
             exonComplexity.addValue(getComplexity(ex.sequence));
@@ -234,14 +246,14 @@ public class EntryPoint {
         addCommonStat("exon_score", exonScore);
 
 
-        counter = 0;
+        counter = 1;
         StringBuilder transSeq;
         Iterator<Transcript> tit = g.transcripts.iterator();
         while (tit.hasNext()) {
 
             Transcript tr = tit.next();
             transSeq = new StringBuilder();
-            System.out.println("\r Processing transcript " + counter + " (" + tr.id + ")");
+            featureConsoleSeg.update(String.format(" - transcript %s (%d/%d)", tr.id, counter, g.transcripts.size()));
 
             for (int i = 0; i < tr.exons.size(); i++) {
                 Exon currentExon = tr.exons.get(i);
@@ -278,11 +290,11 @@ public class EntryPoint {
             counter++;
         }
 
-        data.setValue("number_of_transcripts", g.transcripts.size());
+        data.setValue("transcript_count", g.transcripts.size());
 
         addCommonStat("distance_between_exons", transExonSpacing);
 
-        addCommonStat("exon_per_trans", transExonPerTrans);
+        addCommonStat("exons_per_trans", transExonPerTrans);
 
         addCommonStat("trans_length", transLength);
         addCommonStat("trans_complexity", transComplexity);
@@ -299,7 +311,8 @@ public class EntryPoint {
         addCommonStat("3utr_gccount", trans3UTRGCCount);
         addCommonStat("3utr_score", trans3UTRScore);
 
-
+        featureConsoleSeg.remove();
+        featureConsoleSeg = null;
     }
 
 }

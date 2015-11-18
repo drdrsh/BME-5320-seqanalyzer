@@ -47,7 +47,7 @@ public class SequenceComparator {
         int hashBit = 2;
 
         // A base seed for hash functions.
-        int seed = 0;
+        int seed = EntryPoint.RANDOM_SEED;
 
         // The number of hash functions.
         int num = 256;

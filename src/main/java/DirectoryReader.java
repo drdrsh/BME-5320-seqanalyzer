@@ -8,13 +8,14 @@ import java.util.Map;
  */
 public class  DirectoryReader implements Iterable<DirectoryReader.GeneFileEntry> {
 
-    private boolean isReady = false;
+    private boolean mIsReady = false;
+    private int mCount = -1;
     public Iterator<GeneFileEntry> iterator() {
         return new Iterator<GeneFileEntry>() {
             private Iterator<Map.Entry<String, GeneFileEntry>> mInternalIt = null;
 
             public boolean hasNext() {
-                if(!isReady){
+                if(!mIsReady){
                     readFiles();
                     mInternalIt = mGeneFileList.entrySet().iterator();
                 }
@@ -22,7 +23,7 @@ public class  DirectoryReader implements Iterable<DirectoryReader.GeneFileEntry>
             }
 
             public GeneFileEntry next() {
-                if(!isReady){
+                if(!mIsReady){
                     readFiles();
                     mInternalIt = mGeneFileList.entrySet().iterator();
                 }
@@ -78,6 +79,7 @@ public class  DirectoryReader implements Iterable<DirectoryReader.GeneFileEntry>
                         current = new GeneFileEntry();
                         current.geneId = parts.geneId;
                         mGeneFileList.put(parts.geneId, current);
+                        mCount++;
                     } else {
                         current = mGeneFileList.get(parts.geneId);
                     }
@@ -94,7 +96,7 @@ public class  DirectoryReader implements Iterable<DirectoryReader.GeneFileEntry>
                 }
             }
         }
-        isReady = true;
+        mIsReady = true;
     }
 
     public DirectoryReader() {
@@ -104,6 +106,10 @@ public class  DirectoryReader implements Iterable<DirectoryReader.GeneFileEntry>
 
     public void addDirectory(String key, String path){
         mDirectoryList.put(key, path);
+    }
+
+    public int getCount(){
+        return mCount;
     }
 
 }
