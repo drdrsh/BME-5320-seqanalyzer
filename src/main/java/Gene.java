@@ -10,4 +10,6 @@ public class Gene {
     DNASequence sequence;
     HashMap<String, Exon> exons;
     ArrayList<Transcript> transcripts;
+    double complexity;
+    double similarity;
 }

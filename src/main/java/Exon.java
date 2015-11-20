@@ -5,6 +5,8 @@ public class Exon {
     String id;
     boolean isConstitutive;
     DNASequence sequence;
+    double complexity;
+    double similarity;
     long start;
     long end;
 

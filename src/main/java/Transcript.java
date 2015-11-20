@@ -11,6 +11,13 @@ public class Transcript {
     DNASequence sequence;
     DNASequence fiveUTR;
     DNASequence threeUTR;
+    double threeUTRComplexity;
+    double threeUTRsimilarity;
+    double fiveUTRcomplexity;
+    double fiveUTRsimilarity;
+    double overallComplexity;
+    double overallSimilarity;
+
 
 
 
