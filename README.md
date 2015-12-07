@@ -13,18 +13,28 @@ This script takes access the Ensembl database directly and returns genes that li
 
 ```sql
 SELECT
-        g.`gene_id` as gene_id,
-        g.`stable_id` as gene_sid
-    FROM
-        `gene` as g
-    WHERE
-        g.`seq_region_end` - g.`seq_region_start` BETWEEN $gene_length_range[0] AND $gene_length_range[1]
-            AND
-        (SELECT COUNT(*) FROM `transcript` as tx WHERE tx.`gene_id` = g.`gene_id`) BETWEEN $transcript_range[0] AND $transcript_range[1]
-            AND
-        (SELECT COUNT(DISTINCT et2.exon_id) FROM `transcript` as tx2 RIGHT OUTER JOIN `exon_transcript` as et2 ON et2.transcript_id = tx2.transcript_id WHERE tx2.`gene_id` = g.`gene_id`) BETWEEN $exon_range[0] and $exon_range[1]
-            AND
-        g.`stable_id` NOT IN ($not_allowed_genes)
+	g.`gene_id` as gene_id,
+	g.`stable_id` as gene_sid
+FROM
+	`gene` as g
+WHERE
+	g.`seq_region_end` - g.`seq_region_start` BETWEEN $gene_length_range[0] AND $gene_length_range[1]
+AND
+	(SELECT COUNT(*) FROM `transcript` as tx WHERE tx.`gene_id` = g.`gene_id`) 
+		BETWEEN
+	$transcript_range[0] AND $transcript_range[1]
+AND
+	(SELECT 
+		COUNT(DISTINCT et2.exon_id) FROM `transcript` as tx2 
+	RIGHT OUTER JOIN 
+		`exon_transcript` as et2 ON et2.transcript_id = tx2.transcript_id 
+	WHERE 
+		tx2.`gene_id` = g.`gene_id`
+	) 
+	BETWEEN 
+		$exon_range[0] and $exon_range[1]
+AND
+	g.`stable_id` NOT IN ($not_allowed_genes)
 ```
 
 get_data.pl
