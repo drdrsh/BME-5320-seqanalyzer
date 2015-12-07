@@ -10,23 +10,26 @@ import java.util.*;
  * Created by Mostafa on 11/5/2015.
  */
 public class Dataset {
-
+    private boolean mIsStrictMode = false;
     private ArrayList<HashMap<String, String>> mData;
-
+    private ArrayList<String> mFields = new ArrayList<String>();
     private int mCurrentRow = -1;
-    private String [] mFields;
-    private Dataset(){}
 
     public Dataset(String [] fieldIds){
-        mFields = new String[fieldIds.length];
-        System.arraycopy(fieldIds, 0, mFields, 0, fieldIds.length);
+        String [] fields = new String[fieldIds.length];
+        System.arraycopy(fieldIds, 0, fieldIds, 0, fieldIds.length);
+        mFields.addAll(Arrays.asList(fields));
+        mIsStrictMode = true;
+    }
+
+    public Dataset(){
         mData = new ArrayList<HashMap<String, String>>();
     }
 
     private HashMap<String, String> createEmptyRow() {
         HashMap<String, String> row = new HashMap<String, String>();
-        for(int i=0;i<mFields.length;i++) {
-            row.put(mFields[i], "");
+        for(int i=0;i<mFields.size();i++) {
+            row.put(mFields.get(i), "");
         }
         return row;
     }
@@ -46,9 +49,9 @@ public class Dataset {
 
     public String [] getArray(int id){
         HashMap<String, String> row = mData.get(id);
-        String [] arr = new String[mFields.length];
-        for(int i=0;i<mFields.length;i++) {
-            arr[i] = row.get(mFields[i]);
+        String [] arr = new String[mFields.size()];
+        for(int i=0;i<mFields.size();i++) {
+            arr[i] = row.get(mFields.get(i));
         }
         return arr;
     }
@@ -60,8 +63,18 @@ public class Dataset {
 
     public void newRow(Object [] arr){
         newRow();
-        for(int i=0;i<mFields.length;i++) {
-            setValue(mFields[i], arr[i].toString());
+        for(int i=0;i<mFields.size();i++) {
+            setValue(mFields.get(i), arr[i].toString());
+        }
+    }
+
+    private void checkKey(String key) {
+        if(!mFields.contains(key)){
+            if(mIsStrictMode) {
+                throw new IndexOutOfBoundsException("Couldn't find key " + key);
+            } else {
+                mFields.add(key);
+            }
         }
     }
 
@@ -78,10 +91,11 @@ public class Dataset {
     }
 
     public void setValue(String key, int value){
-       setValue(key, Integer.toString(value));
+        setValue(key, Integer.toString(value));
     }
 
     public void setValue(String key, String value){
+        checkKey(key);
         mData.get(mCurrentRow).put(key, value);
     }
 

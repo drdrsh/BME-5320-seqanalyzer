@@ -1,5 +1,5 @@
 <?php
-$trial_diffs = array(0.5, 1, 5, 10, 15, 20, 25, 50);
+$trial_diffs = array(25);
 //Diff +/- 10%
 $gene_length = array(221162, 63496, 317190, 26452, 25863, 5170, 5715, 9236, 27781, 49322, 36523, 37336, 19861, 27384, 25927, 15063, 39427, 9707, 52484, 31805, 11071, 515541, 11392, 50927, 3429, 23904, 48128, 24169, 12903, 8126, 64902, 8720, 11169, 374224, 4397, 2483, 56312, 24976, 7381, 45988, 11603, 100893, 23914);
 
@@ -73,6 +73,14 @@ SQLQuery;
 mysqli_close($connection);
 
 foreach($result as $key => $value){
-    echo $value[array_rand($value)] . " ";
+    //echo $value[array_rand($value)] . " ";
+    $counter = 0;
+    foreach($value as $v) {
+        if($counter > 5) {
+            break;
+        }
+        echo $v. " ";
+        $counter++;
+    }
 }
 //file_put_contents("C:/Users/Mostafa/IdeaProjects/sequence-analyzer/mapping.json", json_encode($result));

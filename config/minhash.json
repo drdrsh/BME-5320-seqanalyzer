@@ -1,0 +1,38 @@
+{
+    "settings" : {
+        "id" : "minhash",
+        "seed" : 450,
+        
+        "minhash_enabled" : true,
+        "minhash_hashfunctions" :  128,
+        "minhash_min" :  3,
+        "minhash_max" :  6,
+        "minhash_scale_min" : 0, 
+        "minhash_scale_max" : 100000,
+        "minhash_scale_correction" : 0,
+        
+        "complexity_enabled" : false,
+        "complexity_scale_min" : 0, 
+        "complexity_scale_max" : 1000,
+        "complexity_scale_correction" : 0,
+        
+        "kmers_enabled" : false,
+        "kmers_length" : 3,
+        "kmers_mode" : "relative",
+        "kmers_scale" : 100000
+        
+    },
+    "files" : [{
+        "filename_prefix" : "training_dataset",
+        "directories" : {
+            "./data/training_high_error/": "high", 
+            "./data/training_low_error/": "low"
+        }
+    },{
+        "filename_prefix" : "test_dataset",
+        "directories" : {
+            "./data/test_high_error/": "high", 
+            "./data/test_low_error/": "low"
+        }
+    }]
+}
