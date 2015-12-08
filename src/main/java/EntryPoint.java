@@ -337,7 +337,7 @@ public class EntryPoint {
         return result;
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
 
         System.out.println("Gene Analyzer 0.0.1 by Mostafa Abdelraouf");
 
@@ -347,7 +347,11 @@ public class EntryPoint {
             System.exit(1);
         }
 
-        ArrayList<String> filesToProcess = new ArrayList<String>();
+        //ArrayList<String> filesToProcess = new ArrayList<String>();
+        //filesToProcess.add("./config/simple_new.json");
+        //filesToProcess.add("./config/complexity_kmers_new.json");
+        //filesToProcess.add("./config/complexity_minhash_new.json");
+        /*
         filesToProcess.add("./config/simple.json");
         filesToProcess.add("./config/complexity.json");
         filesToProcess.add("./config/minhash.json");
@@ -361,19 +365,18 @@ public class EntryPoint {
 
         //filesToProcess.add("./config/quick_minhash.json");
 
-
         args = filesToProcess.toArray(args);
+        */
 
         long processStartTime = System.currentTimeMillis();
         TerminalHelper.TerminalSegment configConsoleSegment = TerminalHelper.addProgressSegment();
         for(int i =0;i<args.length;i++) {
             configConsoleSegment.update("Processing config file " + args[i]);
+            //TODO: Validate Config JSON Files
             runConfigurationFile(args[i]);
         }
         configConsoleSegment.remove();
         System.out.println("\nDone process in " + ((System.currentTimeMillis() - processStartTime) / 1000) + " seconds");
-
-
     }
 
     private static void runConfigurationFile(String configFile) {
