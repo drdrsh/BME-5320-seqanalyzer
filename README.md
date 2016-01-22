@@ -7,8 +7,8 @@ Fonseca et al. (http://journals.plos.org/plosone/article?id=10.1371/journal.pone
 
 Here are some documentation of the tools used in this project
 
-search_genes.php
-=========
+## search_genes.php
+
 This script takes access the Ensembl database directly and returns genes that lie within a given range of values (with arbitrary tolerance) of gene length, transcript count and exon count. It doesn't have a command line interface. For convenience I will provide the SQL query directly should you ever need to look for a gene or a set of genes that satisfy specific criteria.
 
 ```sql
@@ -37,8 +37,11 @@ AND
 	g.`stable_id` NOT IN ($not_allowed_genes)
 ```
 
-get_data.pl
-=========
+### Note
+This query has been modified to allow searching for 3' and 5' UTR regions with length within a specific range, without this constrain a leaker was introduced into the dataset that led to 3' and 5' UTR length be used by classifiers to predict the state of the gene, controlling for this factor resulted in more realistic results.
+
+## get_data.pl
+
 This script takes Ensembl gene stable IDs as parameters, you can specify more than one ID. 
 
     perl get_data.pl ENSG00000109920 ENSG00000116898 ENSG00000126088
@@ -78,9 +81,41 @@ To run this script you need to have perl, bioperl and the ensembl APIs installed
     }
 
  
+## Data set builder
 
+Dataset builder takes the raw gene information and compiles a series of CSV files that contain a variaty of features that will be fed into Weka for analysis. The program reads a JSON settings file that specifies features to include in the generated dataset, sample configuration files are stored under "config" directory.
 
-Data set builder
-=========
+### The full set of features are
+* gene_length
+* gene_complexity
+* gene_minhash_score
+* gene_***_kmer_count
+* exon_count
+* non_constitutive_exon_percent
+* stat_exon_length
+* stat_exon_gccount
+* stat_exon_complexity
+* stat_exon_minhash_score
+* stat_transcript_count
+* stat_transcript_length
+* stat_transcript_gccount
+* stat_exon_per_transcript
+* stat_exon_to_exon_distance
+* stat_non_constitutive_exon_count
+* stat_3utr_length
+* stat_3utr_gccount
+* stat_5utr_length
+* stat_5utr_gccount
+* stat_5utr_complexity
+* stat_transcript_complexity
+* stat_3utr_complexity
+* stat_5utr_complexity
+* stat_transcript_minhash_score
+* stat_3utr_minhash_score
+* stat_5utr_minhash_score
 
-Todo
+### Notes 
+===
+- features with stat_ prefix will be further broken down into statistical summary parameters like (mean, median and standard deviation)
+- Kmer feature is broken down into the counts of all possible k-mer 
+  
